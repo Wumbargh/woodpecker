@@ -29,14 +29,14 @@ export async function importPuzzles(
       created_by: null,
     }));
 
-    const { error, count } = await admin
+    const { data, error } = await admin
       .from("puzzles")
       .upsert(batch, { onConflict: "lichess_id", ignoreDuplicates: true })
-      .select("id", { count: "exact", head: true });
+      .select("id");
 
     if (error) return { imported, skipped, error: error.message };
-    imported += count ?? 0;
-    skipped += batch.length - (count ?? 0);
+    imported += data?.length ?? 0;
+    skipped += batch.length - (data?.length ?? 0);
   }
 
   return { imported, skipped };

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
-import { initSolution, applyMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
+import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 
 interface Puzzle {
@@ -16,6 +16,7 @@ interface Puzzle {
 
 interface Session {
   id: string;
+  user_id: string;
   cycle_number: number;
   queue_state: QueueState;
 }
@@ -87,7 +88,8 @@ export default function TrainingSession({ session, puzzles }: Props) {
   async function persistQueueState(state: QueueState) {
     await supabase
       .from("training_sessions")
-      .update({ queue_state: state })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ queue_state: state as any })
       .eq("id", session.id);
   }
 
@@ -95,6 +97,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     await supabase.from("puzzle_attempts").insert({
       session_id: session.id,
       puzzle_id: puzzleId,
+      user_id: session.user_id,
       solved_correctly: correct,
       time_taken_ms: Date.now() - startTime,
     });
@@ -103,8 +106,10 @@ export default function TrainingSession({ session, puzzles }: Props) {
   async function handleMove(uciMove: string) {
     if (!solutionState || !currentPuzzleId || setupPhase) return;
 
-    const { result, state: newSolutionState } = applyMove(solutionState, uciMove);
-    setSolutionState(newSolutionState);
+    const { result, state: afterUser, engineMove } = applyUserMove(solutionState, uciMove);
+
+    // Update board to show user's move immediately (animates via animationDuration)
+    setSolutionState(afterUser);
     setFeedback(result === "incorrect" ? "incorrect" : result === "solved" ? "solved" : "correct");
 
     if (result === "incorrect") {
@@ -112,21 +117,37 @@ export default function TrainingSession({ session, puzzles }: Props) {
       const newQueueState = onAttempt(queueState, currentPuzzleId, false);
       await persistQueueState(newQueueState);
       setQueueState(newQueueState);
+      return;
+    }
+
+    // Animate engine response after user move animation completes
+    if (engineMove) {
+      setTimeout(() => {
+        const { state: afterEngine, solved } = applyEngineMove(afterUser);
+        setSolutionState(afterEngine);
+        if (solved) markPuzzleSolved();
+      }, 250);
     }
 
     if (result === "solved") {
-      let newQueueState: QueueState;
-      if (hintsUsed > 0) {
-        await recordAttempt(currentPuzzleId, false);
-        newQueueState = onAttemptWithHint(queueState, currentPuzzleId);
-      } else {
-        await recordAttempt(currentPuzzleId, true);
-        newQueueState = onAttempt(queueState, currentPuzzleId, true);
-      }
-      await persistQueueState(newQueueState);
-      setQueueState(newQueueState);
-      setPendingNextQueue(newQueueState);
+      markPuzzleSolved();
     }
+  }
+
+  async function markPuzzleSolved() {
+    if (!currentPuzzleId) return;
+    setFeedback("solved");
+    let newQueueState: QueueState;
+    if (hintsUsed > 0) {
+      await recordAttempt(currentPuzzleId, false);
+      newQueueState = onAttemptWithHint(queueState, currentPuzzleId);
+    } else {
+      await recordAttempt(currentPuzzleId, true);
+      newQueueState = onAttempt(queueState, currentPuzzleId, true);
+    }
+    await persistQueueState(newQueueState);
+    setQueueState(newQueueState);
+    setPendingNextQueue(newQueueState);
   }
 
   async function handleGiveUp() {

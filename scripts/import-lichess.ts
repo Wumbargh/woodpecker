@@ -52,12 +52,12 @@ if (!fs.existsSync(CSV_PATH)) {
 }
 
 async function insertBatch(batch: object[]): Promise<number> {
-  const { error, count } = await supabase
+  const { data, error } = await supabase
     .from("puzzles")
     .upsert(batch, { onConflict: "lichess_id", ignoreDuplicates: true })
-    .select("id", { count: "exact", head: true });
+    .select("id");
   if (error) throw new Error(error.message);
-  return count ?? 0;
+  return data?.length ?? 0;
 }
 
 async function run() {

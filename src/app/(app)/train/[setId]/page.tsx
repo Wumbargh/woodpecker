@@ -68,7 +68,8 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
 
     const { data: newSession, error } = await supabase
       .from("training_sessions")
-      .insert({ user_id: user.id, puzzle_set_id: setId, cycle_number: cycleNumber, queue_state: queueState })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert({ user_id: user.id, puzzle_set_id: setId, cycle_number: cycleNumber, queue_state: queueState as any })
       .select()
       .single();
 
@@ -78,5 +79,6 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
     session = newSession;
   }
 
-  return <TrainingSession session={session} puzzles={puzzles} />;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return <TrainingSession session={session as any} puzzles={puzzles} />;
 }

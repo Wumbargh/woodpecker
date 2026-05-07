@@ -66,7 +66,7 @@ async function run() {
   console.log(`User: ${userId}`);
 
   // Collect puzzles per bucket in one pass through the CSV
-  const buckets: Map<number, object[]>[] = SETS.map(() => new Map());
+  const buckets: Map<string, object>[] = SETS.map(() => new Map());
   const puzzleIds: Map<number, string[]> = new Map(SETS.map((_, i) => [i, []]));
 
   console.log("Scanning CSV…");
