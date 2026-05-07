@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { nextPuzzle, onAttempt, type QueueState } from "@/lib/training/queue";
+import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
 import { initSolution, applyMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 
@@ -41,6 +41,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [sessionDone, setSessionDone] = useState(false);
   const [setupPhase, setSetupPhase] = useState(false);
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
+  const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
 
   const markSessionComplete = useCallback(async () => {
     await supabase
@@ -67,9 +68,9 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setQueueState(newQueueState);
     setSolutionState(sol);
     setFeedback(null);
+    setHintsUsed(0);
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
 
-    // Show setup move (opponent's last move) for 900ms before puzzle starts
     setSetupPhase(true);
     setTimeout(() => {
       setSetupPhase(false);
@@ -101,20 +102,28 @@ export default function TrainingSession({ session, puzzles }: Props) {
     if (!solutionState || !currentPuzzleId || setupPhase) return;
 
     const { result, state: newSolutionState } = applyMove(solutionState, uciMove);
-
     setSolutionState(newSolutionState);
     setFeedback(result === "incorrect" ? "incorrect" : result === "solved" ? "solved" : "correct");
 
-    if (result === "incorrect" || result === "solved") {
-      const correct = result === "solved";
-      await recordAttempt(currentPuzzleId, correct);
-      const newQueueState = onAttempt(queueState, currentPuzzleId, correct);
+    if (result === "incorrect") {
+      await recordAttempt(currentPuzzleId, false);
+      const newQueueState = onAttempt(queueState, currentPuzzleId, false);
       await persistQueueState(newQueueState);
       setQueueState(newQueueState);
+    }
 
-      if (result === "solved") {
-        setTimeout(() => loadNextPuzzle(newQueueState), 800);
+    if (result === "solved") {
+      let newQueueState: QueueState;
+      if (hintsUsed > 0) {
+        await recordAttempt(currentPuzzleId, false);
+        newQueueState = onAttemptWithHint(queueState, currentPuzzleId);
+      } else {
+        await recordAttempt(currentPuzzleId, true);
+        newQueueState = onAttempt(queueState, currentPuzzleId, true);
       }
+      await persistQueueState(newQueueState);
+      setQueueState(newQueueState);
+      setTimeout(() => loadNextPuzzle(newQueueState), 800);
     }
   }
 
@@ -140,8 +149,8 @@ export default function TrainingSession({ session, puzzles }: Props) {
   }
 
   const remaining = queueState.mainQueue.length - queueState.mainIndex;
+  const puzzle = currentPuzzleId ? puzzleMap.get(currentPuzzleId) : null;
 
-  // During setup phase: show the board before the opponent's move, with an arrow
   const boardFen = setupPhase && solutionState
     ? solutionState.setupFen
     : solutionState?.game.fen();
@@ -150,7 +159,10 @@ export default function TrainingSession({ session, puzzles }: Props) {
     ? uciToSquares(solutionState.setupMove)
     : undefined;
 
-  const puzzle = currentPuzzleId ? puzzleMap.get(currentPuzzleId) : null;
+  // Hint 2: highlight the from-square of the next expected move
+  const highlightSquare = !setupPhase && hintsUsed >= 2 && solutionState
+    ? solutionState.solutionMoves[solutionState.currentMoveIndex]?.slice(0, 2)
+    : undefined;
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -168,6 +180,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
           onMove={handleMove}
           feedback={setupPhase ? null : feedback}
           arrow={arrow}
+          highlightSquare={highlightSquare}
           interactive={!setupPhase}
           boardOrientation={boardOrientation}
         />
@@ -177,7 +190,18 @@ export default function TrainingSession({ session, puzzles }: Props) {
         <p className="text-center text-sm text-gray-500">Opponent&apos;s last move…</p>
       )}
 
-      <div className="flex gap-3">
+      {/* Hint 1: themes */}
+      {hintsUsed >= 1 && puzzle?.themes && puzzle.themes.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {puzzle.themes.map((t) => (
+            <span key={t} className="px-2 py-0.5 bg-yellow-900/50 text-yellow-300 rounded text-xs">
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={handleGiveUp}
           disabled={setupPhase}
@@ -185,8 +209,31 @@ export default function TrainingSession({ session, puzzles }: Props) {
         >
           Give up
         </button>
+
+        {hintsUsed < 1 && (
+          <button
+            onClick={() => setHintsUsed(1)}
+            disabled={setupPhase}
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
+          >
+            Tipp 1 (Thema)
+          </button>
+        )}
+
+        {hintsUsed === 1 && (
+          <button
+            onClick={() => setHintsUsed(2)}
+            disabled={setupPhase}
+            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
+          >
+            Tipp 2 (Figur)
+          </button>
+        )}
+
         {puzzle?.rating && (
-          <span className="ml-auto text-sm text-gray-500">Rating: {puzzle.rating}</span>
+          <span className="ml-auto self-center text-sm text-gray-500">
+            Rating: {puzzle.rating}
+          </span>
         )}
       </div>
     </div>

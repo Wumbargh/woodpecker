@@ -7,11 +7,12 @@ interface Props {
   onMove: (uciMove: string) => void;
   feedback: "correct" | "incorrect" | "solved" | null;
   arrow?: [string, string];
+  highlightSquare?: string; // square to highlight (hint: piece to move)
   interactive?: boolean;
   boardOrientation?: "white" | "black";
 }
 
-export default function PuzzleBoard({ fen, onMove, feedback, arrow, interactive = true, boardOrientation = "white" }: Props) {
+export default function PuzzleBoard({ fen, onMove, feedback, arrow, highlightSquare, interactive = true, boardOrientation = "white" }: Props) {
   function onDrop(sourceSquare: string, targetSquare: string, piece: string): boolean {
     if (!interactive) return false;
     const promotion =
@@ -38,6 +39,11 @@ export default function PuzzleBoard({ fen, onMove, feedback, arrow, interactive 
         boardOrientation={boardOrientation}
         boardWidth={480}
         customArrows={arrow ? [[arrow[0], arrow[1], "#f59e0b"]] : []}
+        customSquareStyles={
+          highlightSquare
+            ? { [highlightSquare]: { backgroundColor: "rgba(250, 204, 21, 0.55)" } }
+            : {}
+        }
         customDarkSquareStyle={{ backgroundColor: "#4a7c59" }}
         customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
       />

@@ -1,10 +1,13 @@
-const REVIEW_INTERVAL = 9; // inject one review puzzle every N main puzzles
+const REVIEW_INTERVAL = 9;       // normal wrong answers: back every ~9 main puzzles
+const HINT_REVIEW_INTERVAL = 20; // hint-used answers: back every ~20 main puzzles
 
 export interface QueueState {
-  mainQueue: string[];   // puzzle IDs
+  mainQueue: string[];
   mainIndex: number;
-  reviewQueue: string[]; // puzzle IDs waiting for review
-  reviewCounter: number; // counts main puzzles since last review injection
+  reviewQueue: string[];      // wrong answers
+  reviewCounter: number;
+  hintReviewQueue: string[];  // hint-used but solved — longer delay
+  hintReviewCounter: number;
 }
 
 export function buildInitialQueue(puzzleIds: string[], seed: number): QueueState {
@@ -13,32 +16,54 @@ export function buildInitialQueue(puzzleIds: string[], seed: number): QueueState
     mainIndex: 0,
     reviewQueue: [],
     reviewCounter: 0,
+    hintReviewQueue: [],
+    hintReviewCounter: 0,
   };
 }
 
-export function nextPuzzle(state: QueueState): { puzzleId: string | null; state: QueueState } {
-  const shouldInjectReview =
-    state.reviewQueue.length > 0 && state.reviewCounter >= REVIEW_INTERVAL;
+function normalize(state: QueueState): QueueState {
+  return {
+    ...state,
+    hintReviewQueue: state.hintReviewQueue ?? [],
+    hintReviewCounter: state.hintReviewCounter ?? 0,
+  };
+}
 
-  if (shouldInjectReview) {
+export function nextPuzzle(raw: QueueState): { puzzleId: string | null; state: QueueState } {
+  const state = normalize(raw);
+  // Normal review takes priority over hint review
+  if (state.reviewQueue.length > 0 && state.reviewCounter >= REVIEW_INTERVAL) {
     const [puzzleId, ...rest] = state.reviewQueue;
-    return {
-      puzzleId,
-      state: { ...state, reviewQueue: rest, reviewCounter: 0 },
-    };
+    return { puzzleId, state: { ...state, reviewQueue: rest, reviewCounter: 0 } };
+  }
+
+  if (state.hintReviewQueue.length > 0 && state.hintReviewCounter >= HINT_REVIEW_INTERVAL) {
+    const [puzzleId, ...rest] = state.hintReviewQueue;
+    return { puzzleId, state: { ...state, hintReviewQueue: rest, hintReviewCounter: 0 } };
   }
 
   if (state.mainIndex >= state.mainQueue.length) {
-    // Main queue exhausted — drain remaining review queue
-    if (state.reviewQueue.length === 0) return { puzzleId: null, state };
-    const [puzzleId, ...rest] = state.reviewQueue;
-    return { puzzleId, state: { ...state, reviewQueue: rest } };
+    // Main exhausted — drain review queues (normal first, then hint)
+    if (state.reviewQueue.length > 0) {
+      const [puzzleId, ...rest] = state.reviewQueue;
+      return { puzzleId, state: { ...state, reviewQueue: rest } };
+    }
+    if (state.hintReviewQueue.length > 0) {
+      const [puzzleId, ...rest] = state.hintReviewQueue;
+      return { puzzleId, state: { ...state, hintReviewQueue: rest } };
+    }
+    return { puzzleId: null, state };
   }
 
   const puzzleId = state.mainQueue[state.mainIndex];
   return {
     puzzleId,
-    state: { ...state, mainIndex: state.mainIndex + 1, reviewCounter: state.reviewCounter + 1 },
+    state: {
+      ...state,
+      mainIndex: state.mainIndex + 1,
+      reviewCounter: state.reviewCounter + 1,
+      hintReviewCounter: state.hintReviewCounter + 1,
+    },
   };
 }
 
@@ -47,8 +72,11 @@ export function onAttempt(state: QueueState, puzzleId: string, correct: boolean)
   return { ...state, reviewQueue: [...state.reviewQueue, puzzleId] };
 }
 
-// Build a weighted main queue for a new cycle based on previous attempt history.
-// puzzleErrors: map of puzzleId -> number of incorrect attempts in last cycle
+export function onAttemptWithHint(state: QueueState, puzzleId: string): QueueState {
+  const s = normalize(state);
+  return { ...s, hintReviewQueue: [...s.hintReviewQueue, puzzleId] };
+}
+
 export function buildWeightedQueue(
   puzzleIds: string[],
   puzzleErrors: Map<string, number>,
