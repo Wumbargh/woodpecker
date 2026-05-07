@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, type QueueState } from "@/lib/training/queue";
-import { initSolution, applyMove, type SolutionState } from "@/lib/chess/solution";
+import { initSolution, applyMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 
 interface Puzzle {
@@ -27,19 +27,33 @@ interface Props {
 
 export default function TrainingSession({ session, puzzles }: Props) {
   const supabase = createClient();
-  const puzzleMap = new Map(puzzles.map((p) => [p.id, p]));
 
-  const [queueState, setQueueState] = useState<QueueState>(session.queue_state);
+  const puzzleMap = useMemo(
+    () => new Map(puzzles.map((p) => [p.id, p])),
+    [puzzles]
+  );
+
+  const [queueState, setQueueState] = useState<QueueState>(session.queue_state as QueueState);
   const [currentPuzzleId, setCurrentPuzzleId] = useState<string | null>(null);
   const [solutionState, setSolutionState] = useState<SolutionState | null>(null);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | "solved" | null>(null);
   const [sessionDone, setSessionDone] = useState(false);
+  // Setup phase: show opponent's last move before puzzle starts
+  const [setupPhase, setSetupPhase] = useState(false);
+
+  const markSessionComplete = useCallback(async () => {
+    await supabase
+      .from("training_sessions")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("id", session.id);
+  }, [supabase, session.id]);
 
   const loadNextPuzzle = useCallback((state: QueueState) => {
     const { puzzleId, state: newQueueState } = nextPuzzle(state);
     if (!puzzleId) {
       setSessionDone(true);
+      markSessionComplete();
       return;
     }
     const puzzle = puzzleMap.get(puzzleId);
@@ -47,15 +61,23 @@ export default function TrainingSession({ session, puzzles }: Props) {
       loadNextPuzzle(newQueueState);
       return;
     }
+
+    const sol = initSolution(puzzle.fen, puzzle.moves);
     setCurrentPuzzleId(puzzleId);
     setQueueState(newQueueState);
-    setSolutionState(initSolution(puzzle.fen, puzzle.moves));
-    setStartTime(Date.now());
+    setSolutionState(sol);
     setFeedback(null);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Show setup move (opponent's last move) for 900ms before puzzle starts
+    setSetupPhase(true);
+    setTimeout(() => {
+      setSetupPhase(false);
+      setStartTime(Date.now());
+    }, 900);
+  }, [puzzleMap, markSessionComplete]);
 
   useEffect(() => {
-    loadNextPuzzle(queueState);
+    loadNextPuzzle(session.queue_state as QueueState);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function persistQueueState(state: QueueState) {
@@ -66,19 +88,18 @@ export default function TrainingSession({ session, puzzles }: Props) {
   }
 
   async function recordAttempt(puzzleId: string, correct: boolean) {
-    const timeTaken = Date.now() - startTime;
     await supabase.from("puzzle_attempts").insert({
       session_id: session.id,
       puzzle_id: puzzleId,
       solved_correctly: correct,
-      time_taken_ms: timeTaken,
+      time_taken_ms: Date.now() - startTime,
     });
   }
 
   async function handleMove(uciMove: string) {
-    if (!solutionState || !currentPuzzleId) return;
+    if (!solutionState || !currentPuzzleId || setupPhase) return;
 
-    const { result, state: newSolutionState, engineMove } = applyMove(solutionState, uciMove);
+    const { result, state: newSolutionState } = applyMove(solutionState, uciMove);
 
     setSolutionState(newSolutionState);
     setFeedback(result === "incorrect" ? "incorrect" : result === "solved" ? "solved" : "correct");
@@ -94,12 +115,10 @@ export default function TrainingSession({ session, puzzles }: Props) {
         setTimeout(() => loadNextPuzzle(newQueueState), 800);
       }
     }
-
-    void engineMove; // engine move is applied inside applyMove; board re-renders via solutionState
   }
 
   async function handleGiveUp() {
-    if (!currentPuzzleId) return;
+    if (!currentPuzzleId || setupPhase) return;
     await recordAttempt(currentPuzzleId, false);
     const newQueueState = onAttempt(queueState, currentPuzzleId, false);
     await persistQueueState(newQueueState);
@@ -119,6 +138,17 @@ export default function TrainingSession({ session, puzzles }: Props) {
     );
   }
 
+  const remaining = queueState.mainQueue.length - queueState.mainIndex;
+
+  // During setup phase: show the board before the opponent's move, with an arrow
+  const boardFen = setupPhase && solutionState
+    ? solutionState.setupFen
+    : solutionState?.game.fen();
+
+  const arrow: [string, string] | undefined = setupPhase && solutionState
+    ? uciToSquares(solutionState.setupMove)
+    : undefined;
+
   const puzzle = currentPuzzleId ? puzzleMap.get(currentPuzzleId) : null;
 
   return (
@@ -126,23 +156,30 @@ export default function TrainingSession({ session, puzzles }: Props) {
       <div className="flex items-center justify-between text-sm text-gray-400">
         <span>Cycle {session.cycle_number}</span>
         <span>
-          {queueState.mainQueue.length - queueState.mainIndex} remaining
+          {remaining} remaining
           {queueState.reviewQueue.length > 0 && ` · ${queueState.reviewQueue.length} in review`}
         </span>
       </div>
 
-      {puzzle && solutionState && (
+      {boardFen && (
         <PuzzleBoard
-          fen={solutionState.game.fen()}
+          fen={boardFen}
           onMove={handleMove}
-          feedback={feedback}
+          feedback={setupPhase ? null : feedback}
+          arrow={arrow}
+          interactive={!setupPhase}
         />
+      )}
+
+      {setupPhase && (
+        <p className="text-center text-sm text-gray-500">Opponent&apos;s last move…</p>
       )}
 
       <div className="flex gap-3">
         <button
           onClick={handleGiveUp}
-          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm"
+          disabled={setupPhase}
+          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm disabled:opacity-40"
         >
           Give up
         </button>

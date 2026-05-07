@@ -10,17 +10,19 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Load puzzle IDs in this set
-  const { data: setPuzzles } = await supabase
+  // Load puzzles via join — avoids .in() URL length limits with large sets
+  const { data: setPuzzleRows } = await supabase
     .from("puzzle_set_puzzles")
-    .select("puzzle_id")
+    .select("puzzle_id, puzzles!inner(id, fen, moves, rating, themes)")
     .eq("puzzle_set_id", setId);
 
-  if (!setPuzzles?.length) {
+  if (!setPuzzleRows?.length) {
     return <p className="text-gray-400">This set has no puzzles yet.</p>;
   }
 
-  const puzzleIds = setPuzzles.map((r) => r.puzzle_id);
+  const puzzleIds = setPuzzleRows.map((r) => r.puzzle_id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const puzzles = setPuzzleRows.map((r) => (r as any).puzzles);
 
   // Resume existing incomplete session, or create a new one
   let { data: session } = await supabase
@@ -31,10 +33,9 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
     .is("completed_at", null)
     .order("started_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!session) {
-    // Determine cycle number and build weighted queue based on previous cycle errors
     const { data: lastSession } = await supabase
       .from("training_sessions")
       .select("id, cycle_number")
@@ -43,7 +44,7 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
       .not("completed_at", "is", null)
       .order("cycle_number", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const cycleNumber = (lastSession?.cycle_number ?? 0) + 1;
     const seed = Date.now();
@@ -77,16 +78,5 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
     session = newSession;
   }
 
-  // Load all puzzles for this set (client component needs them for display)
-  const { data: puzzles } = await supabase
-    .from("puzzles")
-    .select("id, fen, moves, rating, themes")
-    .in("id", puzzleIds);
-
-  return (
-    <TrainingSession
-      session={session}
-      puzzles={puzzles ?? []}
-    />
-  );
+  return <TrainingSession session={session} puzzles={puzzles} />;
 }
