@@ -39,8 +39,8 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | "solved" | null>(null);
   const [sessionDone, setSessionDone] = useState(false);
-  // Setup phase: show opponent's last move before puzzle starts
   const [setupPhase, setSetupPhase] = useState(false);
+  const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
 
   const markSessionComplete = useCallback(async () => {
     await supabase
@@ -67,6 +67,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setQueueState(newQueueState);
     setSolutionState(sol);
     setFeedback(null);
+    setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
 
     // Show setup move (opponent's last move) for 900ms before puzzle starts
     setSetupPhase(true);
@@ -168,6 +169,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
           feedback={setupPhase ? null : feedback}
           arrow={arrow}
           interactive={!setupPhase}
+          boardOrientation={boardOrientation}
         />
       )}
 
