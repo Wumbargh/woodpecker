@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { Square } from "chess.js";
@@ -24,6 +24,7 @@ export default function PuzzleBoard({
   const [clickPromotion, setClickPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardWidth, setBoardWidth] = useState(480);
+  const [animationDuration, setAnimationDuration] = useState(200);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -83,11 +84,14 @@ export default function PuzzleBoard({
     }
   }
 
+  const onPieceDragBegin = useCallback(() => {
+    setAnimationDuration(0);
+  }, []);
+
   function onDrop(from: string, to: string): boolean {
-    // Always return false — position is controlled via the fen prop
-    // For non-promotion moves, fire onMove immediately
-    // For promotions, onPromotionPieceSelect handles it via onPromotionCheck
     onMove(from + to);
+    // Restore click animation after the FEN update has rendered
+    setTimeout(() => setAnimationDuration(200), 50);
     return false;
   }
 
@@ -140,7 +144,8 @@ export default function PuzzleBoard({
         isDraggablePiece={({ piece }) => interactive && piece[0] === playerColor}
         boardOrientation={boardOrientation}
         boardWidth={boardWidth}
-        animationDuration={200}
+        onPieceDragBegin={onPieceDragBegin}
+        animationDuration={animationDuration}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         customArrows={arrow ? [[arrow[0] as any, arrow[1] as any, "#f59e0b"]] : []}
         customSquareStyles={squareStyles}
