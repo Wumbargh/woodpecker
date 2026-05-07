@@ -10,6 +10,7 @@ export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [minRating, setMinRating] = useState(1000);
   const [maxRating, setMaxRating] = useState(2000);
+  const [minPopularity, setMinPopularity] = useState(80);
   const [maxCount, setMaxCount] = useState(1000);
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState(0);
@@ -26,7 +27,7 @@ export default function ImportPage() {
     setProgress(0);
 
     const text = await file.text();
-    const puzzles = parseLichessCSV(text, { minRating, maxRating, maxCount });
+    const puzzles = parseLichessCSV(text, { minRating, maxRating, minPopularity, maxCount });
 
     if (puzzles.length === 0) {
       setError("No puzzles found matching the filter criteria.");
@@ -107,6 +108,20 @@ export default function ImportPage() {
               className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">
+            Min popularity (−100 bis 100, empfohlen: ≥ 80)
+          </label>
+          <input
+            type="number"
+            value={minPopularity}
+            onChange={(e) => setMinPopularity(Number(e.target.value))}
+            min={-100}
+            max={100}
+            className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+          />
         </div>
 
         <div>

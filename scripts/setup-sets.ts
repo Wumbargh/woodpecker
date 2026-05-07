@@ -84,7 +84,9 @@ async function run() {
     const cols = line.split(",");
     if (cols.length < 8) continue;
     const rating = parseInt(cols[3]);
-    if (isNaN(rating)) continue;
+    const popularity = parseInt(cols[5]);
+    if (isNaN(rating) || isNaN(popularity)) continue;
+    if (popularity < 80) continue; // skip low-quality puzzles
 
     for (let i = 0; i < SETS.length; i++) {
       const { min, max } = SETS[i];
@@ -94,6 +96,7 @@ async function run() {
           fen: cols[1],
           moves: cols[2].split(" ").filter(Boolean),
           rating,
+          popularity,
           themes: cols[7] ? cols[7].split(" ").filter(Boolean) : [],
           source: "lichess",
           created_by: null,

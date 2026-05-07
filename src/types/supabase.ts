@@ -14,6 +14,7 @@ export interface Database {
           source: string;
           lichess_id: string | null;
           rating: number | null;
+          popularity: number | null;
           themes: string[] | null;
           created_by: string | null;
           created_at: string;

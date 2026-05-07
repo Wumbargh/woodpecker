@@ -24,6 +24,7 @@ export async function importPuzzles(
       source: "lichess",
       lichess_id: p.lichess_id,
       rating: p.rating,
+      popularity: p.popularity,
       themes: p.themes,
       created_by: null,
     }));

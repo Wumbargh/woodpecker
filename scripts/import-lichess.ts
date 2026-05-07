@@ -40,6 +40,7 @@ function getArg(flag: string, fallback: number): number {
 
 const MIN_RATING = getArg("--min-rating", 0);
 const MAX_RATING = getArg("--max-rating", 9999);
+const MIN_POPULARITY = getArg("--min-popularity", 0);
 const MAX_COUNT = getArg("--count", 5000);
 const BATCH_SIZE = 200;
 
@@ -81,13 +82,17 @@ async function run() {
     if (cols.length < 8) continue;
 
     const rating = parseInt(cols[3]);
-    if (isNaN(rating) || rating < MIN_RATING || rating > MAX_RATING) continue;
+    const popularity = parseInt(cols[5]);
+    if (isNaN(rating) || isNaN(popularity)) continue;
+    if (rating < MIN_RATING || rating > MAX_RATING) continue;
+    if (popularity < MIN_POPULARITY) continue;
 
     batch.push({
       lichess_id: cols[0],
       fen: cols[1],
       moves: cols[2].split(" ").filter(Boolean),
       rating,
+      popularity,
       themes: cols[7] ? cols[7].split(" ").filter(Boolean) : [],
       source: "lichess",
       created_by: null,
