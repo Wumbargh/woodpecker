@@ -11,9 +11,9 @@ export default async function SetsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Puzzle sets</h1>
+        <h1 className="text-xl font-semibold">Aufgaben-Sets</h1>
         <Link href="/sets/new" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium">
-          New set
+          Neues Set
         </Link>
       </div>
       <ul className="space-y-3">
@@ -25,10 +25,10 @@ export default async function SetsPage() {
             </div>
             <div className="flex gap-2">
               <Link href={`/sets/${set.id}`} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">
-                Manage
+                Verwalten
               </Link>
               <Link href={`/train/${set.id}`} className="px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-sm">
-                Train
+                Trainieren
               </Link>
             </div>
           </li>

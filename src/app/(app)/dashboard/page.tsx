@@ -11,17 +11,17 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Your puzzle sets</h1>
+        <h1 className="text-xl font-semibold">Deine Aufgaben-Sets</h1>
         <Link
           href="/sets/new"
           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium"
         >
-          New set
+          Neues Set
         </Link>
       </div>
 
       {!sets?.length && (
-        <p className="text-gray-400 text-sm">No sets yet. Create one to get started.</p>
+        <p className="text-gray-400 text-sm">Noch keine Sets. Erstell eines, um loszulegen.</p>
       )}
 
       <ul className="space-y-3">
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
               href={`/train/${set.id}`}
               className="px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-sm font-medium"
             >
-              Train
+              Trainieren
             </Link>
           </li>
         ))}

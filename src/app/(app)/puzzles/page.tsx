@@ -12,13 +12,13 @@ export default async function PuzzlesPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Puzzles</h1>
+        <h1 className="text-xl font-semibold">Aufgaben</h1>
         <div className="flex gap-2">
           <Link href="/puzzles/import" className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm">
-            Import from Lichess
+            Von Lichess importieren
           </Link>
           <Link href="/puzzles/new" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm">
-            Add custom
+            Eigene hinzufügen
           </Link>
         </div>
       </div>
@@ -26,8 +26,8 @@ export default async function PuzzlesPage() {
         <thead>
           <tr className="text-gray-400 text-left border-b border-gray-800">
             <th className="pb-2">Rating</th>
-            <th className="pb-2">Themes</th>
-            <th className="pb-2">Source</th>
+            <th className="pb-2">Themen</th>
+            <th className="pb-2">Quelle</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-800">

@@ -162,10 +162,10 @@ export default function TrainingSession({ session, puzzles }: Props) {
   if (sessionDone) {
     return (
       <div className="max-w-md mx-auto text-center space-y-4 mt-20">
-        <h2 className="text-2xl font-bold">Cycle {session.cycle_number} complete!</h2>
-        <p className="text-gray-400">Well done. Start the next cycle when you&apos;re ready.</p>
+        <h2 className="text-2xl font-bold">Zyklus {session.cycle_number} abgeschlossen!</h2>
+        <p className="text-gray-400">Gut gemacht. Starte den nächsten Zyklus, wenn du bereit bist.</p>
         <a href="/dashboard" className="inline-block px-4 py-2 bg-blue-600 rounded font-medium">
-          Back to dashboard
+          Zur Übersicht
         </a>
       </div>
     );
@@ -192,8 +192,8 @@ export default function TrainingSession({ session, puzzles }: Props) {
       <div className="flex items-center justify-between text-sm text-gray-400">
         <span>Cycle {session.cycle_number}</span>
         <span>
-          {remaining} remaining
-          {queueState.reviewQueue.length > 0 && ` · ${queueState.reviewQueue.length} in review`}
+          {remaining} verbleibend
+          {queueState.reviewQueue.length > 0 && ` · ${queueState.reviewQueue.length} zur Wiederholung`}
         </span>
       </div>
 
@@ -210,7 +210,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
       )}
 
       {setupPhase && (
-        <p className="text-center text-sm text-gray-500">Opponent&apos;s last move…</p>
+        <p className="text-center text-sm text-gray-500">Letzter Zug des Gegners…</p>
       )}
 
       {/* Hint 1: themes */}
@@ -239,7 +239,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
               disabled={setupPhase}
               className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm disabled:opacity-40"
             >
-              Give up
+              Aufgeben
             </button>
 
             {hintsUsed < 1 && (
@@ -266,7 +266,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
 
         {puzzle?.rating && (
           <span className="ml-auto self-center text-sm text-gray-500">
-            Rating: {puzzle.rating}
+            Rating {puzzle.rating}
           </span>
         )}
       </div>

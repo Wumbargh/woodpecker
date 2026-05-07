@@ -11,9 +11,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="border-b border-gray-800 px-6 py-3 flex items-center gap-6">
-        <Link href="/dashboard" className="font-bold text-lg">Wookpecker</Link>
+        <Link href="/dashboard" className="font-bold text-lg">Taktik-Drill</Link>
         <Link href="/sets" className="text-gray-400 hover:text-white text-sm">Sets</Link>
-        <Link href="/puzzles" className="text-gray-400 hover:text-white text-sm">Puzzles</Link>
+        <Link href="/puzzles" className="text-gray-400 hover:text-white text-sm">Aufgaben</Link>
         <div className="ml-auto">
           <LogoutButton />
         </div>

@@ -31,7 +31,7 @@ export default async function SetDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="bg-gray-900 rounded-lg p-4 text-sm text-gray-400">
-        {setPuzzles?.length ?? 0} puzzles in this set · {totalPuzzles ?? 0} total available
+        {setPuzzles?.length ?? 0} Aufgaben in diesem Set · {totalPuzzles ?? 0} insgesamt verfügbar
       </div>
 
       <AddPuzzlesToSet setId={id} currentCount={setPuzzles?.length ?? 0} />

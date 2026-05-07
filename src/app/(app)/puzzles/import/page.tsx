@@ -30,14 +30,13 @@ export default function ImportPage() {
     const puzzles = parseLichessCSV(text, { minRating, maxRating, minPopularity, maxCount });
 
     if (puzzles.length === 0) {
-      setError("No puzzles found matching the filter criteria.");
+      setError("Keine Aufgaben gefunden, die den Filterkriterien entsprechen.");
       setStatus("error");
       return;
     }
 
     setStatus("importing");
 
-    // Send in chunks so we can show progress
     const chunkSize = 500;
     let totalImported = 0;
     let totalSkipped = 0;
@@ -63,10 +62,10 @@ export default function ImportPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <h1 className="text-xl font-semibold">Import from Lichess</h1>
+      <h1 className="text-xl font-semibold">Von Lichess importieren</h1>
 
       <p className="text-sm text-gray-400">
-        Download the puzzle CSV from{" "}
+        Lade die Aufgaben-CSV von{" "}
         <a
           href="https://database.lichess.org/#puzzles"
           target="_blank"
@@ -75,12 +74,12 @@ export default function ImportPage() {
         >
           database.lichess.org
         </a>{" "}
-        and upload it here.
+        herunter und lade sie hier hoch.
       </p>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-400 mb-1">CSV file</label>
+          <label className="block text-sm text-gray-400 mb-1">CSV-Datei</label>
           <input
             ref={fileRef}
             type="file"
@@ -91,7 +90,7 @@ export default function ImportPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Min rating</label>
+            <label className="block text-sm text-gray-400 mb-1">Min. Rating</label>
             <input
               type="number"
               value={minRating}
@@ -100,7 +99,7 @@ export default function ImportPage() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Max rating</label>
+            <label className="block text-sm text-gray-400 mb-1">Max. Rating</label>
             <input
               type="number"
               value={maxRating}
@@ -112,7 +111,7 @@ export default function ImportPage() {
 
         <div>
           <label className="block text-sm text-gray-400 mb-1">
-            Min popularity (−100 bis 100, empfohlen: ≥ 80)
+            Min. Popularität (−100 bis 100, empfohlen: ≥ 80)
           </label>
           <input
             type="number"
@@ -125,7 +124,7 @@ export default function ImportPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Max puzzles to import</label>
+          <label className="block text-sm text-gray-400 mb-1">Max. Aufgaben importieren</label>
           <input
             type="number"
             value={maxCount}
@@ -142,10 +141,10 @@ export default function ImportPage() {
           className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium disabled:opacity-50"
         >
           {status === "parsing"
-            ? "Parsing CSV…"
+            ? "CSV wird verarbeitet…"
             : status === "importing"
-            ? `Importing… ${progress}%`
-            : "Import"}
+            ? `Importiere… ${progress}%`
+            : "Importieren"}
         </button>
       </div>
 
@@ -160,9 +159,9 @@ export default function ImportPage() {
 
       {status === "done" && result && (
         <div className="bg-green-900/40 border border-green-700 rounded p-4 text-sm">
-          <p className="font-medium text-green-400">Import complete</p>
+          <p className="font-medium text-green-400">Import abgeschlossen</p>
           <p className="text-gray-300 mt-1">
-            {result.imported} puzzles imported · {result.skipped} already existed
+            {result.imported} Aufgaben importiert · {result.skipped} bereits vorhanden
           </p>
         </div>
       )}

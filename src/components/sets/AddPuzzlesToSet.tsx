@@ -42,18 +42,18 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
     if (res.error) {
       setError(res.error);
     } else {
-      setResult(`Added ${res.added} puzzles. Set now has ${currentCount + res.added} puzzles.`);
+      setResult(`${res.added} Aufgaben hinzugefügt. Set hat jetzt ${currentCount + res.added} Aufgaben.`);
     }
     setLoading(false);
   }
 
   return (
     <div className="space-y-5">
-      <h2 className="font-medium">Add puzzles</h2>
+      <h2 className="font-medium">Aufgaben hinzufügen</h2>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Min rating</label>
+          <label className="block text-sm text-gray-400 mb-1">Min. Rating</label>
           <input
             type="number"
             value={minRating}
@@ -62,7 +62,7 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Max rating</label>
+          <label className="block text-sm text-gray-400 mb-1">Max. Rating</label>
           <input
             type="number"
             value={maxRating}
@@ -73,7 +73,7 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Number of puzzles</label>
+        <label className="block text-sm text-gray-400 mb-1">Anzahl Aufgaben</label>
         <input
           type="number"
           value={count}
@@ -85,7 +85,7 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-2">Filter by theme (optional)</label>
+        <label className="block text-sm text-gray-400 mb-2">Nach Thema filtern (optional)</label>
         <div className="flex flex-wrap gap-2">
           {COMMON_THEMES.map((theme) => (
             <button
@@ -108,7 +108,7 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
         disabled={loading}
         className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium disabled:opacity-50"
       >
-        {loading ? "Adding…" : "Add puzzles"}
+        {loading ? "Wird hinzugefügt…" : "Aufgaben hinzufügen"}
       </button>
 
       {result && (

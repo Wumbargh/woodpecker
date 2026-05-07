@@ -33,19 +33,19 @@ export default function NewSetPage() {
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <h1 className="text-xl font-semibold">New puzzle set</h1>
+      <h1 className="text-xl font-semibold">Neues Aufgaben-Set</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <input
           type="text"
-          placeholder="Set name"
+          placeholder="Name des Sets"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
           className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
         />
         <textarea
-          placeholder="Description (optional)"
+          placeholder="Beschreibung (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
@@ -56,7 +56,7 @@ export default function NewSetPage() {
           disabled={loading}
           className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded font-medium disabled:opacity-50"
         >
-          {loading ? "Creating…" : "Create set"}
+          {loading ? "Wird erstellt…" : "Set erstellen"}
         </button>
       </form>
     </div>
