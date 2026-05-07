@@ -42,6 +42,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [setupPhase, setSetupPhase] = useState(false);
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
+  const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
 
   const markSessionComplete = useCallback(async () => {
     await supabase
@@ -70,6 +71,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setFeedback(null);
     setHintsUsed(0);
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
+    setPendingNextQueue(null);
 
     setSetupPhase(true);
     setTimeout(() => {
@@ -123,7 +125,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
       }
       await persistQueueState(newQueueState);
       setQueueState(newQueueState);
-      setTimeout(() => loadNextPuzzle(newQueueState), 800);
+      setPendingNextQueue(newQueueState);
     }
   }
 
@@ -202,32 +204,43 @@ export default function TrainingSession({ session, puzzles }: Props) {
       )}
 
       <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={handleGiveUp}
-          disabled={setupPhase}
-          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm disabled:opacity-40"
-        >
-          Give up
-        </button>
-
-        {hintsUsed < 1 && (
+        {pendingNextQueue ? (
           <button
-            onClick={() => setHintsUsed(1)}
-            disabled={setupPhase}
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
+            onClick={() => loadNextPuzzle(pendingNextQueue)}
+            className="px-4 py-1.5 bg-green-700 hover:bg-green-600 rounded text-sm font-medium"
           >
-            Tipp 1 (Thema)
+            Nächste Aufgabe →
           </button>
-        )}
+        ) : (
+          <>
+            <button
+              onClick={handleGiveUp}
+              disabled={setupPhase}
+              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm disabled:opacity-40"
+            >
+              Give up
+            </button>
 
-        {hintsUsed === 1 && (
-          <button
-            onClick={() => setHintsUsed(2)}
-            disabled={setupPhase}
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
-          >
-            Tipp 2 (Figur)
-          </button>
+            {hintsUsed < 1 && (
+              <button
+                onClick={() => setHintsUsed(1)}
+                disabled={setupPhase}
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
+              >
+                Tipp 1 (Thema)
+              </button>
+            )}
+
+            {hintsUsed === 1 && (
+              <button
+                onClick={() => setHintsUsed(2)}
+                disabled={setupPhase}
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
+              >
+                Tipp 2 (Figur)
+              </button>
+            )}
+          </>
         )}
 
         {puzzle?.rating && (
