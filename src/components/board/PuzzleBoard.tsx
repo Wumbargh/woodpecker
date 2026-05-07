@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { Square } from "chess.js";
@@ -21,8 +21,19 @@ export default function PuzzleBoard({
   interactive = true, boardOrientation = "white",
 }: Props) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
-  // Pending promotion initiated via click-to-move
   const [clickPromotion, setClickPromotion] = useState<{ from: Square; to: Square } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [boardWidth, setBoardWidth] = useState(480);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setBoardWidth(Math.floor(entry.contentRect.width));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Clear selection on wrong move or when the position changes (engine move / new puzzle)
   useEffect(() => {
@@ -114,7 +125,7 @@ export default function PuzzleBoard({
   }
 
   return (
-    <div className={`border-4 rounded-lg overflow-hidden transition-colors duration-200 ${borderColor}`}>
+    <div ref={containerRef} className={`border-4 rounded-lg overflow-hidden transition-colors duration-200 ${borderColor}`}>
       <Chessboard
         position={fen}
         onPieceDrop={onDrop}
@@ -128,7 +139,7 @@ export default function PuzzleBoard({
         arePiecesDraggable={interactive}
         isDraggablePiece={({ piece }) => interactive && piece[0] === playerColor}
         boardOrientation={boardOrientation}
-        boardWidth={480}
+        boardWidth={boardWidth}
         animationDuration={200}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         customArrows={arrow ? [[arrow[0] as any, arrow[1] as any, "#f59e0b"]] : []}

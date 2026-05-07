@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -18,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <LogoutButton />
         </div>
       </nav>
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-3 sm:p-6">{children}</main>
     </div>
   );
 }

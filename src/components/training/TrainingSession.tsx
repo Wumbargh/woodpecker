@@ -188,7 +188,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     : undefined;
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="max-w-xl mx-auto space-y-4 px-2 sm:px-0">
       <div className="flex items-center justify-between text-sm text-gray-400">
         <span>Cycle {session.cycle_number}</span>
         <span>
