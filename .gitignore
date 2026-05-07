@@ -9,3 +9,6 @@ dist/
 # Supabase
 .supabase/
 supabase/.temp/
+
+# Puzzle data files (large, not for version control)
+puzzles/
