@@ -122,18 +122,6 @@ export default function PuzzleBoard({
     : "border-gray-700";
 
   const squareStyles: Record<string, React.CSSProperties> = {};
-
-  // Legal move dots for selected piece (Lichess style)
-  if (selectedSquare && interactive) {
-    const chess = new Chess(fen);
-    for (const move of chess.moves({ square: selectedSquare, verbose: true })) {
-      const isOccupied = !!chess.get(move.to as Square);
-      squareStyles[move.to] = isOccupied
-        ? { background: "radial-gradient(circle, transparent 55%, rgba(0,0,0,0.25) 55%)" }
-        : { background: "radial-gradient(circle, rgba(0,0,0,0.22) 28%, transparent 28%)" };
-    }
-  }
-
   if (highlightSquare) {
     squareStyles[highlightSquare] = { backgroundColor: "rgba(250, 204, 21, 0.55)" };
   }
