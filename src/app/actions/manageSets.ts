@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function addPuzzlesToSet(
   setId: string,
-  options: { minRating?: number; maxRating?: number; count: number; themes?: string[] }
+  options: { minRating?: number; maxRating?: number; minNbPlays?: number; count: number; themes?: string[] }
 ): Promise<{ added: number; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +32,7 @@ export async function addPuzzlesToSet(
   let query = supabase.from("puzzles").select("id").limit(options.count * 3);
   if (options.minRating) query = query.gte("rating", options.minRating);
   if (options.maxRating) query = query.lte("rating", options.maxRating);
+  if (options.minNbPlays) query = query.gte("nb_plays", options.minNbPlays);
   if (options.themes?.length) query = query.overlaps("themes", options.themes);
 
   const { data: candidates } = await query;

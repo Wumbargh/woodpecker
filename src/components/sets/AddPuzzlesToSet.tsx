@@ -17,6 +17,7 @@ interface Props {
 export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
   const [minRating, setMinRating] = useState(1000);
   const [maxRating, setMaxRating] = useState(2000);
+  const [minNbPlays, setMinNbPlays] = useState(1000);
   const [count, setCount] = useState(500);
   const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
     const res = await addPuzzlesToSet(setId, {
       minRating,
       maxRating,
+      minNbPlays: minNbPlays > 0 ? minNbPlays : undefined,
       count,
       themes: selectedThemes.length > 0 ? selectedThemes : undefined,
     });
@@ -70,6 +72,18 @@ export default function AddPuzzlesToSet({ setId, currentCount }: Props) {
             className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-400 mb-1">Min. Aufrufe (nb_plays)</label>
+        <input
+          type="number"
+          value={minNbPlays}
+          onChange={(e) => setMinNbPlays(Number(e.target.value))}
+          min={0}
+          step={500}
+          className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+        />
       </div>
 
       <div>

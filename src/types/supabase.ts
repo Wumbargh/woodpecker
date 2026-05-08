@@ -15,6 +15,7 @@ export type Database = {
           lichess_id: string | null;
           rating: number | null;
           popularity: number | null;
+          nb_plays: number | null;
           themes: string[] | null;
           hidden_count: number;
           created_by: string | null;
@@ -28,6 +29,7 @@ export type Database = {
           lichess_id?: string | null;
           rating?: number | null;
           popularity?: number | null;
+          nb_plays?: number | null;
           themes?: string[] | null;
           hidden_count?: number;
           created_by?: string | null;
@@ -41,6 +43,7 @@ export type Database = {
           lichess_id?: string | null;
           rating?: number | null;
           popularity?: number | null;
+          nb_plays?: number | null;
           themes?: string[] | null;
           hidden_count?: number;
           created_by?: string | null;

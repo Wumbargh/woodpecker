@@ -40,7 +40,8 @@ function getArg(flag: string, fallback: number): number {
 
 const MIN_RATING = getArg("--min-rating", 0);
 const MAX_RATING = getArg("--max-rating", 9999);
-const MIN_POPULARITY = getArg("--min-popularity", 0);
+const MIN_POPULARITY = getArg("--min-popularity", -100);
+const MIN_NB_PLAYS = getArg("--min-nb-plays", 0);
 const MAX_COUNT = getArg("--count", 5000);
 const BATCH_SIZE = 200;
 
@@ -54,14 +55,14 @@ if (!fs.existsSync(CSV_PATH)) {
 async function insertBatch(batch: object[]): Promise<number> {
   const { data, error } = await supabase
     .from("puzzles")
-    .upsert(batch, { onConflict: "lichess_id", ignoreDuplicates: true })
+    .upsert(batch, { onConflict: "lichess_id", ignoreDuplicates: false })
     .select("id");
   if (error) throw new Error(error.message);
   return data?.length ?? 0;
 }
 
 async function run() {
-  console.log(`Importing up to ${MAX_COUNT} puzzles (rating ${MIN_RATING}–${MAX_RATING})…`);
+  console.log(`Importing up to ${MAX_COUNT} puzzles (rating ${MIN_RATING}–${MAX_RATING}, min nb_plays ${MIN_NB_PLAYS})…`);
 
   const zstd = spawn("zstd", ["-d", "-c", CSV_PATH]);
   const rl = readline.createInterface({ input: zstd.stdout, crlfDelay: Infinity });
@@ -83,16 +84,19 @@ async function run() {
 
     const rating = parseInt(cols[3]);
     const popularity = parseInt(cols[5]);
-    if (isNaN(rating) || isNaN(popularity)) continue;
+    const nb_plays = parseInt(cols[6]);
+    if (isNaN(rating)) continue;
     if (rating < MIN_RATING || rating > MAX_RATING) continue;
-    if (popularity < MIN_POPULARITY) continue;
+    if (!isNaN(popularity) && popularity < MIN_POPULARITY) continue;
+    if (!isNaN(nb_plays) && nb_plays < MIN_NB_PLAYS) continue;
 
     batch.push({
       lichess_id: cols[0],
       fen: cols[1],
       moves: cols[2].split(" ").filter(Boolean),
       rating,
-      popularity,
+      popularity: isNaN(popularity) ? null : popularity,
+      nb_plays: isNaN(nb_plays) ? null : nb_plays,
       themes: cols[7] ? cols[7].split(" ").filter(Boolean) : [],
       source: "lichess",
       created_by: null,
@@ -115,7 +119,7 @@ async function run() {
   }
 
   zstd.kill();
-  console.log(`\nDone. ${imported} imported, ${skipped} already existed.`);
+  console.log(`\nDone. ${imported} inserted/updated, ${skipped} skipped.`);
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });
