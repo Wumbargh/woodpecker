@@ -253,7 +253,13 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
         </span>
       </div>
 
-      {boardFen && (
+      {analysisMode && solutionState ? (
+        <AnalysisBoard
+          initialFen={solutionState.game.fen()}
+          boardOrientation={boardOrientation}
+          onClose={() => setAnalysisMode(false)}
+        />
+      ) : boardFen ? (
         <PuzzleBoard
           fen={boardFen}
           onMove={handleMove}
@@ -263,7 +269,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
           interactive={!setupPhase && !showingSolution}
           boardOrientation={boardOrientation}
         />
-      )}
+      ) : null}
 
       {setupPhase && (
         <p className="text-center text-sm text-gray-500">Letzter Zug des Gegners…</p>
@@ -380,13 +386,6 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
         )}
       </div>
 
-      {analysisMode && solutionState && (
-        <AnalysisBoard
-          initialFen={solutionState.game.fen()}
-          boardOrientation={boardOrientation}
-          onClose={() => setAnalysisMode(false)}
-        />
-      )}
     </div>
   );
 }
