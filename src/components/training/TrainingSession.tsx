@@ -132,15 +132,30 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
 
     const { result, state: afterUser, engineMove } = applyUserMove(solutionState, uciMove);
 
-    // Update board to show user's move immediately (animates via animationDuration)
-    setSolutionState(afterUser);
-    setFeedback(result === "incorrect" ? "incorrect" : result === "solved" ? "solved" : "correct");
-
     if (result === "incorrect") {
-      await recordAttempt(currentPuzzleId, false);
-      setFailedCurrentPuzzle(true);
+      // Animate piece to target then back (Lichess-style bounce)
+      const { Chess } = await import("chess.js");
+      const tempGame = new Chess(solutionState.game.fen());
+      const promotion = uciMove.length > 4 ? uciMove[4] : "q";
+      const moved = tempGame.move({ from: uciMove.slice(0, 2), to: uciMove.slice(2, 4), promotion });
+      if (moved) {
+        const originalState = solutionState;
+        setSolutionState({ ...solutionState, game: tempGame });
+        setFeedback("incorrect");
+        await recordAttempt(currentPuzzleId, false);
+        setFailedCurrentPuzzle(true);
+        setTimeout(() => setSolutionState(originalState), 400);
+      } else {
+        setFeedback("incorrect");
+        await recordAttempt(currentPuzzleId, false);
+        setFailedCurrentPuzzle(true);
+      }
       return;
     }
+
+    // Update board to show user's move immediately (animates via animationDuration)
+    setSolutionState(afterUser);
+    setFeedback(result === "solved" ? "solved" : "correct");
 
     // Animate engine response after user move animation completes
     if (engineMove) {

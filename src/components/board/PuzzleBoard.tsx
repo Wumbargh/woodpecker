@@ -22,6 +22,8 @@ export default function PuzzleBoard({
 }: Props) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [clickPromotion, setClickPromotion] = useState<{ from: Square; to: Square } | null>(null);
+  const [lastAttemptedTo, setLastAttemptedTo] = useState<Square | null>(null);
+  const lastAttemptedToTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardWidth, setBoardWidth] = useState(480);
   const [animationDuration, setAnimationDuration] = useState(200);
@@ -40,6 +42,7 @@ export default function PuzzleBoard({
   useEffect(() => {
     setSelectedSquare(null);
     setClickPromotion(null);
+    if (feedback !== "incorrect") setLastAttemptedTo(null);
   }, [fen, feedback]);
 
   const playerColor = boardOrientation === "white" ? "w" : "b";
@@ -51,6 +54,12 @@ export default function PuzzleBoard({
 
   function attemptMove(from: Square, to: Square) {
     setSelectedSquare(null);
+    setLastAttemptedTo(to);
+    if (lastAttemptedToTimer.current) clearTimeout(lastAttemptedToTimer.current);
+    lastAttemptedToTimer.current = setTimeout(() => {
+      setLastAttemptedTo(null);
+      lastAttemptedToTimer.current = null;
+    }, 800);
     if (isPromotionMove(from, to)) {
       setClickPromotion({ from, to });
     } else {
@@ -124,6 +133,9 @@ export default function PuzzleBoard({
   const squareStyles: Record<string, React.CSSProperties> = {};
   if (highlightSquare) {
     squareStyles[highlightSquare] = { backgroundColor: "rgba(250, 204, 21, 0.55)" };
+  }
+  if (lastAttemptedTo && feedback === "incorrect") {
+    squareStyles[lastAttemptedTo] = { backgroundColor: "rgba(239, 68, 68, 0.5)" };
   }
   if (selectedSquare) {
     squareStyles[selectedSquare] = { backgroundColor: "rgba(96, 165, 250, 0.6)" };
