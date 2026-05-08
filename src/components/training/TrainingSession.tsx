@@ -4,7 +4,9 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
 import { removePuzzleFromSet, hidePuzzleForUser } from "@/app/actions/manageSets";
+import { Chess } from "chess.js";
 import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
+import { usePuzzleValidator } from "@/hooks/usePuzzleValidator";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 import dynamic from "next/dynamic";
 const AnalysisBoard = dynamic(() => import("@/components/training/AnalysisBoard"), { ssr: false });
@@ -31,8 +33,20 @@ interface Props {
   totalMsBase: number;
 }
 
+function getUserFens(puzzleFen: string, moves: string[]): string[] {
+  // Returns FENs where the user must move: after setup move (i=0) and each engine response (i=2,4,...)
+  const game = new Chess(puzzleFen);
+  const fens: string[] = [];
+  for (let i = 0; i < moves.length; i++) {
+    game.move({ from: moves[i].slice(0, 2), to: moves[i].slice(2, 4), promotion: moves[i][4] });
+    if (i % 2 === 0) fens.push(game.fen());
+  }
+  return fens;
+}
+
 export default function TrainingSession({ session, puzzles, totalMsBase }: Props) {
   const supabase = createClient();
+  const { preanalyze, isAccepted } = usePuzzleValidator();
 
   const puzzleMap = useMemo(
     () => new Map(puzzles.map((p) => [p.id, p])),
@@ -98,12 +112,15 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     setAnalysisMode(false);
     puzzleTimeFrozenRef.current = null;
 
+    // Pre-analyze all user-turn positions in background while setup phase plays
+    preanalyze(getUserFens(puzzle.fen, puzzle.moves));
+
     setSetupPhase(true);
     setTimeout(() => {
       setSetupPhase(false);
       setStartTime(Date.now());
     }, 900);
-  }, [puzzleMap, markSessionComplete]);
+  }, [puzzleMap, markSessionComplete, preanalyze]);
 
   useEffect(() => {
     loadNextPuzzle(session.queue_state as QueueState);
@@ -133,11 +150,19 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     const { result, state: afterUser, engineMove } = applyUserMove(solutionState, uciMove);
 
     if (result === "incorrect") {
-      // Animate piece to target then back (Lichess-style bounce)
-      const { Chess } = await import("chess.js");
-      const tempGame = new Chess(solutionState.game.fen());
+      const fenBeforeMove = solutionState.game.fen();
+      const tempGame = new Chess(fenBeforeMove);
       const promotion = uciMove.length > 4 ? uciMove[4] : "q";
       const moved = tempGame.move({ from: uciMove.slice(0, 2), to: uciMove.slice(2, 4), promotion });
+
+      // Check if engine pre-validated this as an equally good alternative
+      if (moved && isAccepted(fenBeforeMove, uciMove) === true) {
+        setSolutionState({ ...solutionState, game: tempGame });
+        markPuzzleSolved();
+        return;
+      }
+
+      // Wrong move: animate piece to target then bounce back (Lichess-style)
       if (moved) {
         const originalState = solutionState;
         setSolutionState({ ...solutionState, game: tempGame });
@@ -209,7 +234,6 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     const remaining = state.solutionMoves.slice(state.currentMoveIndex);
     for (const move of remaining) {
       await new Promise<void>((resolve) => setTimeout(resolve, 600));
-      const { Chess } = await import("chess.js");
       const game = new Chess(state.game.fen());
       game.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] });
       state = { ...state, game, currentMoveIndex: state.currentMoveIndex + 1 };
