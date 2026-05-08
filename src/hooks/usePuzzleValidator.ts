@@ -8,6 +8,7 @@ const DEPTH = 15;
 
 export function usePuzzleValidator() {
   const workerRef = useRef<Worker | null>(null);
+  const isReadyRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   // fen → set of accepted from-to squares (4-char UCI prefix)
   const cacheRef = useRef<Map<string, Set<string>>>(new Map());
@@ -18,7 +19,7 @@ export function usePuzzleValidator() {
 
   const processNext = useCallback(() => {
     const worker = workerRef.current;
-    if (!worker || busyRef.current) return;
+    if (!worker || !isReadyRef.current || busyRef.current) return;
     while (queueRef.current.length > 0 && cacheRef.current.has(queueRef.current[0])) {
       queueRef.current.shift();
     }
@@ -27,8 +28,8 @@ export function usePuzzleValidator() {
     busyRef.current = true;
     currentFenRef.current = fen;
     currentTopRef.current = [];
+    console.log("[Validator] Analysiere:", fen.slice(0, 30));
     worker.postMessage("stop");
-    worker.postMessage(`setoption name MultiPV value ${MULTIPV}`);
     worker.postMessage(`position fen ${fen}`);
     worker.postMessage(`go depth ${DEPTH}`);
   }, []);
@@ -41,6 +42,9 @@ export function usePuzzleValidator() {
       if (line === "uciok") {
         worker.postMessage("isready");
       } else if (line === "readyok") {
+        // Set MultiPV once after engine is ready
+        worker.postMessage(`setoption name MultiPV value ${MULTIPV}`);
+        isReadyRef.current = true;
         setIsReady(true);
         processNext();
       } else if (line.startsWith("info") && currentFenRef.current) {
@@ -66,12 +70,13 @@ export function usePuzzleValidator() {
             const m = top[i];
             if (!m) continue;
             if (m.score === null) {
-              accepted.add(m.move.slice(0, 4)); // also a mating move
+              accepted.add(m.move.slice(0, 4));
             } else if (best.score !== null && best.score - m.score <= THRESHOLD_CP) {
               accepted.add(m.move.slice(0, 4));
             }
           }
         }
+        console.log("[Validator] Cache gesetzt für", fen.slice(0, 30), "→ akzeptiert:", [...accepted]);
         cacheRef.current.set(fen, accepted);
         currentFenRef.current = null;
         busyRef.current = false;
@@ -84,7 +89,6 @@ export function usePuzzleValidator() {
     return () => worker.terminate();
   }, [processNext]);
 
-  // Prepend new positions to front of queue so the current puzzle is prioritized
   const preanalyze = useCallback(
     (fens: string[]) => {
       const toAdd = fens.filter(
@@ -99,6 +103,7 @@ export function usePuzzleValidator() {
   // Returns true (accepted alternative), false (rejected), or null (not yet analyzed → strict match)
   const isAccepted = useCallback((fen: string, move: string): boolean | null => {
     const accepted = cacheRef.current.get(fen);
+    console.log("[Validator] isAccepted:", move, "→", accepted ? [...accepted] : "noch nicht analysiert");
     if (!accepted) return null;
     return accepted.has(move.slice(0, 4));
   }, []);
