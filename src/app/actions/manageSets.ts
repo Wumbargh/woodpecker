@@ -49,6 +49,28 @@ export async function addPuzzlesToSet(
   return { added: toAdd.length };
 }
 
+export async function removePuzzleFromSet(setId: string, puzzleId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: set } = await supabase
+    .from("puzzle_sets")
+    .select("id")
+    .eq("id", setId)
+    .eq("user_id", user.id)
+    .single();
+  if (!set) return { error: "Set not found" };
+
+  const { error } = await supabase
+    .from("puzzle_set_puzzles")
+    .delete()
+    .eq("puzzle_set_id", setId)
+    .eq("puzzle_id", puzzleId);
+
+  return error ? { error: error.message } : {};
+}
+
 export async function deleteSet(setId: string): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

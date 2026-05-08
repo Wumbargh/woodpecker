@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
+import { removePuzzleFromSet } from "@/app/actions/manageSets";
 import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 
@@ -17,6 +18,7 @@ interface Puzzle {
 interface Session {
   id: string;
   user_id: string;
+  puzzle_set_id: string;
   cycle_number: number;
   queue_state: QueueState;
 }
@@ -45,6 +47,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
   const [showingSolution, setShowingSolution] = useState(false);
+  const [removedFromSet, setRemovedFromSet] = useState(false);
   const sessionStartRef = useRef(Date.now());
   const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -83,6 +86,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
     setPendingNextQueue(null);
     setShowingSolution(false);
+    setRemovedFromSet(false);
     puzzleTimeFrozenRef.current = null;
 
     setSetupPhase(true);
@@ -267,12 +271,29 @@ export default function TrainingSession({ session, puzzles }: Props) {
 
       <div className="flex gap-2 flex-wrap">
         {pendingNextQueue ? (
-          <button
-            onClick={() => loadNextPuzzle(pendingNextQueue)}
-            className="px-4 py-1.5 bg-green-700 hover:bg-green-600 rounded text-sm font-medium"
-          >
-            Nächste Aufgabe →
-          </button>
+          <>
+            <button
+              onClick={() => loadNextPuzzle(pendingNextQueue)}
+              className="px-4 py-1.5 bg-green-700 hover:bg-green-600 rounded text-sm font-medium"
+            >
+              Nächste Aufgabe →
+            </button>
+            {currentPuzzleId && (
+              removedFromSet ? (
+                <span className="self-center text-xs text-gray-600">Aus Set entfernt</span>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await removePuzzleFromSet(session.puzzle_set_id, currentPuzzleId);
+                    setRemovedFromSet(true);
+                  }}
+                  className="self-center text-xs text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  Aus Set entfernen
+                </button>
+              )
+            )}
+          </>
         ) : !showingSolution && (
           <>
             {hintsUsed === 0 && (
