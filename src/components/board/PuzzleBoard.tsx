@@ -111,7 +111,8 @@ export default function PuzzleBoard({
     const promotionPiece = piece[1].toLowerCase(); // "wQ" → "q"
     onMove(f + t + promotionPiece);
     setClickPromotion(null);
-    return true;
+    setTimeout(() => setAnimationDuration(200), 50); // restore for next click move
+    return false; // prevent library from calling onPieceDrop again
   }
 
   const borderColor =
