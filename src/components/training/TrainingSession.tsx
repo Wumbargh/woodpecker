@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
 import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
@@ -44,6 +44,13 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
+  const sessionStartRef = useRef(Date.now());
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const markSessionComplete = useCallback(async () => {
     await supabase
@@ -171,6 +178,12 @@ export default function TrainingSession({ session, puzzles }: Props) {
     );
   }
 
+  function fmtTime(ms: number) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, "0")}`;
+  }
+
   const remaining = queueState.mainQueue.length - queueState.mainIndex;
   const puzzle = currentPuzzleId ? puzzleMap.get(currentPuzzleId) : null;
 
@@ -190,7 +203,11 @@ export default function TrainingSession({ session, puzzles }: Props) {
   return (
     <div className="max-w-xl mx-auto space-y-4 px-2 sm:px-0">
       <div className="flex items-center justify-between text-sm text-gray-400">
-        <span>Cycle {session.cycle_number}</span>
+        <span>Zyklus {session.cycle_number}</span>
+        <span className="text-xs tabular-nums text-gray-600 select-none">
+          {!setupPhase && !pendingNextQueue && `${fmtTime(now - startTime)} · `}
+          {fmtTime(now - sessionStartRef.current)}
+        </span>
         <span>
           {remaining} verbleibend
           {queueState.reviewQueue.length > 0 && ` · ${queueState.reviewQueue.length} zur Wiederholung`}
