@@ -24,7 +24,7 @@ export default function DeleteSetButton({ setId, setName }: { setId: string; set
   if (confirming) {
     return (
       <div className="border border-red-800 rounded-lg p-4 space-y-3 bg-red-950/30">
-        <p className="text-sm font-medium text-red-300">„{setName}" wirklich löschen?</p>
+        <p className="text-sm font-medium text-red-300">&bdquo;{setName}&ldquo; wirklich löschen?</p>
         <p className="text-xs text-gray-400">
           Dabei werden alle Trainingssitzungen, Versuche und Statistiken zu diesem Set unwiderruflich gelöscht.
         </p>
