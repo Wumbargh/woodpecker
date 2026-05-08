@@ -44,6 +44,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
+  const [showingSolution, setShowingSolution] = useState(false);
   const sessionStartRef = useRef(Date.now());
   const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -81,6 +82,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setHintsUsed(0);
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
     setPendingNextQueue(null);
+    setShowingSolution(false);
     puzzleTimeFrozenRef.current = null;
 
     setSetupPhase(true);
@@ -160,13 +162,31 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setPendingNextQueue(newQueueState);
   }
 
-  async function handleGiveUp() {
-    if (!currentPuzzleId || setupPhase) return;
+  async function handleShowSolution() {
+    if (!currentPuzzleId || !solutionState || setupPhase) return;
+    puzzleTimeFrozenRef.current = Date.now() - startTime;
     await recordAttempt(currentPuzzleId, false);
-    const newQueueState = onAttempt(queueState, currentPuzzleId, false);
+    const newQueueState = onAttemptWithHint(queueState, currentPuzzleId);
     await persistQueueState(newQueueState);
     setQueueState(newQueueState);
-    loadNextPuzzle(newQueueState);
+
+    setShowingSolution(true);
+    setFeedback(null);
+
+    let state = solutionState;
+    const remaining = state.solutionMoves.slice(state.currentMoveIndex);
+    for (const move of remaining) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 600));
+      const { Chess } = await import("chess.js");
+      const game = new Chess(state.game.fen());
+      game.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] });
+      state = { ...state, game, currentMoveIndex: state.currentMoveIndex + 1 };
+      setSolutionState({ ...state });
+    }
+
+    setShowingSolution(false);
+    setFeedback("solved");
+    setPendingNextQueue(newQueueState);
   }
 
   if (sessionDone) {
@@ -225,7 +245,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
           feedback={setupPhase ? null : feedback}
           arrow={arrow}
           highlightSquare={highlightSquare}
-          interactive={!setupPhase}
+          interactive={!setupPhase && !showingSolution}
           boardOrientation={boardOrientation}
         />
       )}
@@ -253,33 +273,33 @@ export default function TrainingSession({ session, puzzles }: Props) {
           >
             Nächste Aufgabe →
           </button>
-        ) : (
+        ) : !showingSolution && (
           <>
-            <button
-              onClick={handleGiveUp}
-              disabled={setupPhase}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm disabled:opacity-40"
-            >
-              Aufgeben
-            </button>
-
-            {hintsUsed < 1 && (
+            {hintsUsed === 0 && (
               <button
                 onClick={() => setHintsUsed(1)}
                 disabled={setupPhase}
                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
               >
-                Tipp 1 (Thema)
+                Tipp (Thema)
               </button>
             )}
-
             {hintsUsed === 1 && (
               <button
                 onClick={() => setHintsUsed(2)}
                 disabled={setupPhase}
                 className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-400 rounded text-sm disabled:opacity-40"
               >
-                Tipp 2 (Figur)
+                Tipp (Figur)
+              </button>
+            )}
+            {hintsUsed === 2 && (
+              <button
+                onClick={handleShowSolution}
+                disabled={setupPhase}
+                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-orange-400 rounded text-sm disabled:opacity-40"
+              >
+                Lösung zeigen
               </button>
             )}
           </>
