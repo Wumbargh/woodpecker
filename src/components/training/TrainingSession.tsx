@@ -48,6 +48,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
   const [setupPhase, setSetupPhase] = useState(false);
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
+  const [failedCurrentPuzzle, setFailedCurrentPuzzle] = useState(false);
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
   const [showingSolution, setShowingSolution] = useState(false);
   const [removedFromSet, setRemovedFromSet] = useState(false);
@@ -88,6 +89,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     setSolutionState(sol);
     setFeedback(null);
     setHintsUsed(0);
+    setFailedCurrentPuzzle(false);
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
     setPendingNextQueue(null);
     setShowingSolution(false);
@@ -136,9 +138,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
 
     if (result === "incorrect") {
       await recordAttempt(currentPuzzleId, false);
-      const newQueueState = onAttempt(queueState, currentPuzzleId, false);
-      await persistQueueState(newQueueState);
-      setQueueState(newQueueState);
+      setFailedCurrentPuzzle(true);
       return;
     }
 
@@ -165,6 +165,10 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     if (hintsUsed > 0) {
       await recordAttempt(currentPuzzleId, false);
       newQueueState = onAttemptWithHint(queueState, currentPuzzleId);
+    } else if (failedCurrentPuzzle) {
+      // Solved eventually but had wrong moves: record final solve, add to review once
+      await recordAttempt(currentPuzzleId, true);
+      newQueueState = onAttempt(queueState, currentPuzzleId, false);
     } else {
       await recordAttempt(currentPuzzleId, true);
       newQueueState = onAttempt(queueState, currentPuzzleId, true);
