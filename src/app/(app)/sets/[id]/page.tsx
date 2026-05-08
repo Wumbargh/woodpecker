@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import AddPuzzlesToSet from "@/components/sets/AddPuzzlesToSet";
+import DeleteSetButton from "@/components/sets/DeleteSetButton";
 
 export default async function SetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +36,10 @@ export default async function SetDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       <AddPuzzlesToSet setId={id} currentCount={setPuzzles?.length ?? 0} />
+
+      <div className="pt-4 border-t border-gray-800">
+        <DeleteSetButton setId={id} setName={set.name} />
+      </div>
     </div>
   );
 }

@@ -48,3 +48,38 @@ export async function addPuzzlesToSet(
   revalidatePath(`/sets/${setId}`);
   return { added: toAdd.length };
 }
+
+export async function deleteSet(setId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // Verify ownership
+  const { data: set } = await supabase
+    .from("puzzle_sets")
+    .select("id")
+    .eq("id", setId)
+    .eq("user_id", user.id)
+    .single();
+  if (!set) return { error: "Set not found" };
+
+  // Delete in dependency order
+  const { data: sessions } = await supabase
+    .from("training_sessions")
+    .select("id")
+    .eq("puzzle_set_id", setId);
+  const sessionIds = sessions?.map((s) => s.id) ?? [];
+
+  if (sessionIds.length > 0) {
+    await supabase.from("puzzle_attempts").delete().in("session_id", sessionIds);
+    await supabase.from("training_sessions").delete().in("id", sessionIds);
+  }
+
+  await supabase.from("puzzle_set_puzzles").delete().eq("puzzle_set_id", setId);
+  const { error } = await supabase.from("puzzle_sets").delete().eq("id", setId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/sets");
+  return {};
+}
