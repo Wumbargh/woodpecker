@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { Square } from "chess.js";
@@ -8,7 +8,8 @@ import { useStockfish } from "@/hooks/useStockfish";
 import type { StockfishEval } from "@/hooks/useStockfish";
 
 interface Props {
-  initialFen: string;
+  puzzleFen: string;    // original FEN before any moves
+  puzzleMoves: string[]; // all moves: [setupMove, userMove1, engineMove1, ...]
   boardOrientation: "white" | "black";
   onClose: () => void;
 }
@@ -24,10 +25,22 @@ function formatEval(ev: StockfishEval | null, turn: "w" | "b"): string {
   return pawns > 0 ? `+${pawns.toFixed(2)}` : pawns.toFixed(2);
 }
 
-export default function AnalysisBoard({ initialFen, boardOrientation, onClose }: Props) {
-  const [chess, setChess] = useState(() => new Chess(initialFen));
+export default function AnalysisBoard({ puzzleFen, puzzleMoves, boardOrientation, onClose }: Props) {
+  // Build full position history: after each move (index 0 = after setup move = puzzle start)
+  const positionHistory = useMemo(() => {
+    const fens: string[] = [];
+    const game = new Chess(puzzleFen);
+    for (const move of puzzleMoves) {
+      game.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] });
+      fens.push(game.fen());
+    }
+    return fens;
+  }, [puzzleFen, puzzleMoves]);
+
+  // Start at puzzle initial position; redoStack pre-populated with solution
+  const [chess, setChess] = useState(() => new Chess(positionHistory[0]));
   const [undoStack, setUndoStack] = useState<string[]>([]);
-  const [redoStack, setRedoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>(() => positionHistory.slice(1));
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardWidth, setBoardWidth] = useState(480);
@@ -52,7 +65,7 @@ export default function AnalysisBoard({ initialFen, boardOrientation, onClose }:
     const move = next.move({ from, to, promotion: promotion ?? "q" });
     if (!move) return false;
     setUndoStack((prev) => [...prev, chess.fen()]);
-    setRedoStack([]);
+    setRedoStack([]); // diverge from pre-loaded line
     setChess(next);
     setSelectedSquare(null);
     return true;

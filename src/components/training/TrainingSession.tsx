@@ -253,9 +253,10 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
         </span>
       </div>
 
-      {analysisMode && solutionState ? (
+      {analysisMode && puzzle ? (
         <AnalysisBoard
-          initialFen={solutionState.game.fen()}
+          puzzleFen={puzzle.fen}
+          puzzleMoves={puzzle.moves}
           boardOrientation={boardOrientation}
           onClose={() => setAnalysisMode(false)}
         />
