@@ -46,7 +46,7 @@ function getUserFens(puzzleFen: string, moves: string[]): string[] {
 
 export default function TrainingSession({ session, puzzles, totalMsBase }: Props) {
   const supabase = createClient();
-  const { preanalyze, isAccepted } = usePuzzleValidator();
+  const { preanalyze, isAccepted, isAnalyzing } = usePuzzleValidator();
 
   const puzzleMap = useMemo(
     () => new Map(puzzles.map((p) => [p.id, p])),
@@ -304,15 +304,23 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
           onClose={() => setAnalysisMode(false)}
         />
       ) : boardFen ? (
-        <PuzzleBoard
-          fen={boardFen}
-          onMove={handleMove}
-          feedback={setupPhase ? null : feedback}
-          arrow={arrow}
-          highlightSquare={highlightSquare}
-          interactive={!setupPhase && !showingSolution}
-          boardOrientation={boardOrientation}
-        />
+        <div className="relative">
+          <PuzzleBoard
+            fen={boardFen}
+            onMove={handleMove}
+            feedback={setupPhase ? null : feedback}
+            arrow={arrow}
+            highlightSquare={highlightSquare}
+            interactive={!setupPhase && !showingSolution}
+            boardOrientation={boardOrientation}
+          />
+          {isAnalyzing && (
+            <span
+              className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"
+              title="Engine analysiert…"
+            />
+          )}
+        </div>
       ) : null}
 
       {setupPhase && (

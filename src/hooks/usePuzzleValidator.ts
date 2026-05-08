@@ -10,6 +10,7 @@ export function usePuzzleValidator() {
   const workerRef = useRef<Worker | null>(null);
   const isReadyRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   // fen → set of accepted from-to squares (4-char UCI prefix)
   const cacheRef = useRef<Map<string, Set<string>>>(new Map());
   const queueRef = useRef<string[]>([]);
@@ -23,7 +24,10 @@ export function usePuzzleValidator() {
     while (queueRef.current.length > 0 && cacheRef.current.has(queueRef.current[0])) {
       queueRef.current.shift();
     }
-    if (queueRef.current.length === 0) return;
+    if (queueRef.current.length === 0) {
+      setIsAnalyzing(false);
+      return;
+    }
     const fen = queueRef.current.shift()!;
     busyRef.current = true;
     currentFenRef.current = fen;
@@ -94,7 +98,10 @@ export function usePuzzleValidator() {
       const toAdd = fens.filter(
         (f) => !cacheRef.current.has(f) && !queueRef.current.includes(f)
       );
-      queueRef.current.unshift(...toAdd);
+      if (toAdd.length > 0) {
+        queueRef.current.unshift(...toAdd);
+        setIsAnalyzing(true);
+      }
       processNext();
     },
     [processNext]
@@ -108,5 +115,5 @@ export function usePuzzleValidator() {
     return accepted.has(move.slice(0, 4));
   }, []);
 
-  return { isReady, preanalyze, isAccepted };
+  return { isReady, isAnalyzing, preanalyze, isAccepted };
 }
