@@ -104,9 +104,8 @@ export default function PuzzleBoard({
 
   function onDrop(from: string, to: string): boolean {
     onMove(from + to);
-    // Restore click animation after the FEN update has rendered
     setTimeout(() => setAnimationDuration(200), 50);
-    return false;
+    return true; // keep piece at destination; position prop controls the actual state
   }
 
   function onPromotionPieceSelect(
