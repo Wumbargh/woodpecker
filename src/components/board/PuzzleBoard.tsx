@@ -130,7 +130,7 @@ export default function PuzzleBoard({
   }
 
   return (
-    <div ref={containerRef} className={`border-4 rounded-lg overflow-hidden transition-colors duration-200 ${borderColor}`}>
+    <div ref={containerRef} className={`border-4 rounded-lg transition-colors duration-200 ${borderColor}`}>
       <Chessboard
         position={fen}
         onPieceDrop={onDrop}
