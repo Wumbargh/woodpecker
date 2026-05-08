@@ -56,8 +56,11 @@ export default function AnalysisBoard({ puzzleFen, puzzleMoves, boardOrientation
     return () => observer.disconnect();
   }, []);
 
+  // Debounce: only analyze after user stops navigating (150ms)
   useEffect(() => {
-    if (isReady) analyze(chess.fen());
+    if (!isReady) return;
+    const timer = setTimeout(() => analyze(chess.fen()), 150);
+    return () => clearTimeout(timer);
   }, [chess, isReady, analyze]);
 
   function makeMove(from: string, to: string, promotion?: string): boolean {
