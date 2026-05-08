@@ -32,7 +32,6 @@ export function usePuzzleValidator() {
     busyRef.current = true;
     currentFenRef.current = fen;
     currentTopRef.current = [];
-    console.log("[Validator] Analysiere:", fen.slice(0, 30));
     worker.postMessage("stop");
     worker.postMessage(`position fen ${fen}`);
     worker.postMessage(`go depth ${DEPTH}`);
@@ -80,7 +79,6 @@ export function usePuzzleValidator() {
             }
           }
         }
-        console.log("[Validator] Cache gesetzt für", fen.slice(0, 30), "→ akzeptiert:", [...accepted]);
         cacheRef.current.set(fen, accepted);
         currentFenRef.current = null;
         busyRef.current = false;
@@ -110,7 +108,6 @@ export function usePuzzleValidator() {
   // Returns true (accepted alternative), false (rejected), or null (not yet analyzed → strict match)
   const isAccepted = useCallback((fen: string, move: string): boolean | null => {
     const accepted = cacheRef.current.get(fen);
-    console.log("[Validator] isAccepted:", move, "→", accepted ? [...accepted] : "noch nicht analysiert");
     if (!accepted) return null;
     return accepted.has(move.slice(0, 4));
   }, []);
