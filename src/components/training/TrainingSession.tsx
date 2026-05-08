@@ -279,6 +279,9 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
       {setupPhase && (
         <p className="text-center text-sm text-gray-500">Letzter Zug des Gegners…</p>
       )}
+      {!setupPhase && feedback === "incorrect" && (
+        <p className="text-center text-sm text-red-400">Falscher Zug – versuch es nochmal</p>
+      )}
 
       {/* Hint 1: themes */}
       {hintsUsed >= 1 && puzzle?.themes && puzzle.themes.length > 0 && (
