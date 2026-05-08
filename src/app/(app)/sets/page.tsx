@@ -5,7 +5,20 @@ interface CycleStat {
   cycle: number;
   accuracy: number;
   avgTimeSec: number;
+  totalTimeSec: number;
   completedAt: string;
+}
+
+function fmtTotal(sec: number) {
+  if (sec < 3600) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 export default async function SetsPage() {
@@ -35,6 +48,7 @@ export default async function SetsPage() {
       cycle: session.cycle_number,
       accuracy: Math.round((correct / attempts.length) * 100),
       avgTimeSec: Math.round(totalMs / attempts.length / 1000),
+      totalTimeSec: Math.round(totalMs / 1000),
       completedAt: session.completed_at!,
     };
 
@@ -80,6 +94,7 @@ export default async function SetsPage() {
                         <th className="text-left pb-1 font-normal">Zyklus</th>
                         <th className="text-right pb-1 font-normal">Genauigkeit</th>
                         <th className="text-right pb-1 font-normal">Ø Zeit</th>
+                        <th className="text-right pb-1 font-normal">Gesamt</th>
                         <th className="text-right pb-1 font-normal">Abgeschlossen</th>
                       </tr>
                     </thead>
@@ -93,6 +108,7 @@ export default async function SetsPage() {
                             </span>
                           </td>
                           <td className="py-1 text-right">{s.avgTimeSec}s</td>
+                          <td className="py-1 text-right tabular-nums">{fmtTotal(s.totalTimeSec)}</td>
                           <td className="py-1 text-right">
                             {new Date(s.completedAt).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                           </td>

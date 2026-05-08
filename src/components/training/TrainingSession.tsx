@@ -45,6 +45,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [hintsUsed, setHintsUsed] = useState(0); // 0 = none, 1 = themes shown, 2 = piece shown
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
   const sessionStartRef = useRef(Date.now());
+  const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setHintsUsed(0);
     setBoardOrientation(sol.game.turn() === "w" ? "white" : "black");
     setPendingNextQueue(null);
+    puzzleTimeFrozenRef.current = null;
 
     setSetupPhase(true);
     setTimeout(() => {
@@ -143,6 +145,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
 
   async function markPuzzleSolved() {
     if (!currentPuzzleId) return;
+    puzzleTimeFrozenRef.current = Date.now() - startTime;
     setFeedback("solved");
     let newQueueState: QueueState;
     if (hintsUsed > 0) {
@@ -184,6 +187,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   }
 
+  const puzzleElapsedMs = puzzleTimeFrozenRef.current ?? (now - startTime);
   const remaining = queueState.mainQueue.length - queueState.mainIndex;
   const puzzle = currentPuzzleId ? puzzleMap.get(currentPuzzleId) : null;
 
@@ -205,7 +209,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
       <div className="flex items-center justify-between text-sm text-gray-400">
         <span>Zyklus {session.cycle_number}</span>
         <span className="text-xs tabular-nums text-gray-600 select-none">
-          {!setupPhase && !pendingNextQueue && `${fmtTime(now - startTime)} · `}
+          {!setupPhase && `${fmtTime(puzzleElapsedMs)} · `}
           {fmtTime(now - sessionStartRef.current)}
         </span>
         <span>
