@@ -20,12 +20,13 @@ export async function addPuzzlesToSet(
     .single();
   if (!set) return { added: 0, error: "Set not found" };
 
-  // Get existing puzzle IDs in this set to exclude them
-  const { data: existing } = await supabase
-    .from("puzzle_set_puzzles")
-    .select("puzzle_id")
-    .eq("puzzle_set_id", setId);
+  // Get existing puzzle IDs in this set and user's hidden list to exclude them
+  const [{ data: existing }, { data: hidden }] = await Promise.all([
+    supabase.from("puzzle_set_puzzles").select("puzzle_id").eq("puzzle_set_id", setId),
+    supabase.from("user_hidden_puzzles").select("puzzle_id").eq("user_id", user.id),
+  ]);
   const existingIds = new Set(existing?.map((r) => r.puzzle_id) ?? []);
+  const hiddenIds = new Set(hidden?.map((r) => r.puzzle_id) ?? []);
 
   // Query puzzles matching criteria
   let query = supabase.from("puzzles").select("id").limit(options.count * 3);
@@ -36,7 +37,7 @@ export async function addPuzzlesToSet(
   const { data: candidates } = await query;
 
   const toAdd = (candidates ?? [])
-    .filter((p) => !existingIds.has(p.id))
+    .filter((p) => !existingIds.has(p.id) && !hiddenIds.has(p.id))
     .slice(0, options.count)
     .map((p) => ({ puzzle_set_id: setId, puzzle_id: p.id }));
 
@@ -47,6 +48,18 @@ export async function addPuzzlesToSet(
 
   revalidatePath(`/sets/${setId}`);
   return { added: toAdd.length };
+}
+
+export async function hidePuzzleForUser(puzzleId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("user_hidden_puzzles")
+    .upsert({ user_id: user.id, puzzle_id: puzzleId });
+
+  return error ? { error: error.message } : {};
 }
 
 export async function removePuzzleFromSet(setId: string, puzzleId: string): Promise<{ error?: string }> {

@@ -16,6 +16,7 @@ export type Database = {
           rating: number | null;
           popularity: number | null;
           themes: string[] | null;
+          hidden_count: number;
           created_by: string | null;
           created_at: string;
         };
@@ -28,6 +29,7 @@ export type Database = {
           rating?: number | null;
           popularity?: number | null;
           themes?: string[] | null;
+          hidden_count?: number;
           created_by?: string | null;
           created_at?: string;
         };
@@ -40,8 +42,27 @@ export type Database = {
           rating?: number | null;
           popularity?: number | null;
           themes?: string[] | null;
+          hidden_count?: number;
           created_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_hidden_puzzles: {
+        Row: {
+          user_id: string;
+          puzzle_id: string;
+          hidden_at: string;
+        };
+        Insert: {
+          user_id: string;
+          puzzle_id: string;
+          hidden_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          puzzle_id?: string;
+          hidden_at?: string;
         };
         Relationships: [];
       };

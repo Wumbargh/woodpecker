@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib/training/queue";
-import { removePuzzleFromSet } from "@/app/actions/manageSets";
+import { removePuzzleFromSet, hidePuzzleForUser } from "@/app/actions/manageSets";
 import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
 
@@ -48,6 +48,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [pendingNextQueue, setPendingNextQueue] = useState<QueueState | null>(null);
   const [showingSolution, setShowingSolution] = useState(false);
   const [removedFromSet, setRemovedFromSet] = useState(false);
+  const [hiddenGlobally, setHiddenGlobally] = useState(false);
   const sessionStartRef = useRef(Date.now());
   const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -87,6 +88,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     setPendingNextQueue(null);
     setShowingSolution(false);
     setRemovedFromSet(false);
+    setHiddenGlobally(false);
     puzzleTimeFrozenRef.current = null;
 
     setSetupPhase(true);
@@ -279,19 +281,49 @@ export default function TrainingSession({ session, puzzles }: Props) {
               Nächste Aufgabe →
             </button>
             {currentPuzzleId && (
-              removedFromSet ? (
-                <span className="self-center text-xs text-gray-600">Aus Set entfernt</span>
-              ) : (
-                <button
-                  onClick={async () => {
-                    await removePuzzleFromSet(session.puzzle_set_id, currentPuzzleId);
-                    setRemovedFromSet(true);
-                  }}
-                  className="self-center text-xs text-gray-500 hover:text-red-400 transition-colors"
-                >
-                  Aus Set entfernen
-                </button>
-              )
+              <span className="self-center flex gap-3 text-xs">
+                {hiddenGlobally ? (
+                  <span className="text-gray-600">Gesperrt</span>
+                ) : removedFromSet ? (
+                  <>
+                    <span className="text-gray-600">Aus Set entfernt</span>
+                    <button
+                      onClick={async () => {
+                        await hidePuzzleForUser(currentPuzzleId);
+                        setHiddenGlobally(true);
+                      }}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      Nie mehr zeigen
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={async () => {
+                        await removePuzzleFromSet(session.puzzle_set_id, currentPuzzleId);
+                        setRemovedFromSet(true);
+                      }}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      Aus Set entfernen
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await Promise.all([
+                          removePuzzleFromSet(session.puzzle_set_id, currentPuzzleId),
+                          hidePuzzleForUser(currentPuzzleId),
+                        ]);
+                        setRemovedFromSet(true);
+                        setHiddenGlobally(true);
+                      }}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      Nie mehr zeigen
+                    </button>
+                  </>
+                )}
+              </span>
             )}
           </>
         ) : !showingSolution && (
