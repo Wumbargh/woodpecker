@@ -79,6 +79,22 @@ export default async function TrainPage({ params }: { params: Promise<{ setId: s
     session = newSession;
   }
 
+  // Sum all solved time across all sessions for this set
+  const { data: allSessions } = await supabase
+    .from("training_sessions")
+    .select("id")
+    .eq("puzzle_set_id", setId)
+    .eq("user_id", user.id);
+  const sessionIds = allSessions?.map((s) => s.id) ?? [];
+  let totalMsBase = 0;
+  if (sessionIds.length > 0) {
+    const { data: attempts } = await supabase
+      .from("puzzle_attempts")
+      .select("time_taken_ms")
+      .in("session_id", sessionIds);
+    totalMsBase = attempts?.reduce((sum, a) => sum + (a.time_taken_ms ?? 0), 0) ?? 0;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <TrainingSession session={session as any} puzzles={puzzles} />;
+  return <TrainingSession session={session as any} puzzles={puzzles} totalMsBase={totalMsBase} />;
 }

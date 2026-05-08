@@ -26,9 +26,10 @@ interface Session {
 interface Props {
   session: Session;
   puzzles: Puzzle[];
+  totalMsBase: number;
 }
 
-export default function TrainingSession({ session, puzzles }: Props) {
+export default function TrainingSession({ session, puzzles, totalMsBase }: Props) {
   const supabase = createClient();
 
   const puzzleMap = useMemo(
@@ -49,7 +50,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   const [showingSolution, setShowingSolution] = useState(false);
   const [removedFromSet, setRemovedFromSet] = useState(false);
   const [hiddenGlobally, setHiddenGlobally] = useState(false);
-  const sessionStartRef = useRef(Date.now());
+  const totalMsRef = useRef(totalMsBase);
   const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -154,6 +155,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
   async function markPuzzleSolved() {
     if (!currentPuzzleId) return;
     puzzleTimeFrozenRef.current = Date.now() - startTime;
+    totalMsRef.current += puzzleTimeFrozenRef.current;
     setFeedback("solved");
     let newQueueState: QueueState;
     if (hintsUsed > 0) {
@@ -176,6 +178,7 @@ export default function TrainingSession({ session, puzzles }: Props) {
     await persistQueueState(newQueueState);
     setQueueState(newQueueState);
 
+    totalMsRef.current += puzzleTimeFrozenRef.current!;
     setShowingSolution(true);
     setFeedback(null);
 
@@ -236,7 +239,9 @@ export default function TrainingSession({ session, puzzles }: Props) {
         <span>Zyklus {session.cycle_number}</span>
         <span className="text-xs tabular-nums text-gray-600 select-none">
           {!setupPhase && `${fmtTime(puzzleElapsedMs)} · `}
-          {fmtTime(now - sessionStartRef.current)}
+          {fmtTime(puzzleTimeFrozenRef.current !== null
+            ? totalMsRef.current
+            : totalMsRef.current + (setupPhase ? 0 : now - startTime))}
         </span>
         <span>
           {remaining} verbleibend
