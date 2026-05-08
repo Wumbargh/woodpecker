@@ -150,7 +150,7 @@ export default function PuzzleBoard({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         customArrows={arrow ? [[arrow[0] as any, arrow[1] as any, "#f59e0b"]] : []}
         customSquareStyles={squareStyles}
-        customDarkSquareStyle={{ backgroundColor: "#4a7c59" }}
+        customDarkSquareStyle={{ backgroundColor: "#b58863" }}
         customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
       />
     </div>
