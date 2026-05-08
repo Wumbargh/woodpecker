@@ -27,6 +27,11 @@ export default function PuzzleBoard({
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardWidth, setBoardWidth] = useState(480);
   const [animationDuration, setAnimationDuration] = useState(200);
+  const [isTouch, setIsTouch] = useState(false);
+
+  useEffect(() => {
+    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -153,8 +158,8 @@ export default function PuzzleBoard({
         onPromotionPieceSelect={onPromotionPieceSelect}
         showPromotionDialog={clickPromotion !== null}
         promotionToSquare={clickPromotion?.to ?? null}
-        arePiecesDraggable={interactive}
-        isDraggablePiece={({ piece }) => interactive && piece[0] === playerColor}
+        arePiecesDraggable={interactive && !isTouch}
+        isDraggablePiece={({ piece }) => interactive && !isTouch && piece[0] === playerColor}
         boardOrientation={boardOrientation}
         boardWidth={boardWidth}
         onPieceDragBegin={onPieceDragBegin}
