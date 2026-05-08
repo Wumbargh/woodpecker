@@ -25,15 +25,13 @@ function formatEval(ev: StockfishEval | null, turn: "w" | "b"): string {
 }
 
 export default function AnalysisBoard({ initialFen, boardOrientation, onClose }: Props) {
-  const [history, setHistory] = useState<string[]>([initialFen]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [chess, setChess] = useState(() => new Chess(initialFen));
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>([]);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardWidth, setBoardWidth] = useState(480);
   const { isReady, isThinking, bestMove, evaluation, analyze } = useStockfish();
-
-  const currentFen = history[historyIndex];
-  const chess = new Chess(currentFen);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -46,18 +44,36 @@ export default function AnalysisBoard({ initialFen, boardOrientation, onClose }:
   }, []);
 
   useEffect(() => {
-    if (isReady) analyze(currentFen);
-  }, [currentFen, isReady, analyze]);
+    if (isReady) analyze(chess.fen());
+  }, [chess, isReady, analyze]);
 
   function makeMove(from: string, to: string, promotion?: string): boolean {
-    const next = new Chess(currentFen);
+    const next = new Chess(chess.fen());
     const move = next.move({ from, to, promotion: promotion ?? "q" });
     if (!move) return false;
-    const newHistory = [...history.slice(0, historyIndex + 1), next.fen()];
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    setUndoStack((prev) => [...prev, chess.fen()]);
+    setRedoStack([]);
+    setChess(next);
     setSelectedSquare(null);
     return true;
+  }
+
+  function goBack() {
+    if (undoStack.length === 0) return;
+    const prevFen = undoStack[undoStack.length - 1];
+    setRedoStack((prev) => [chess.fen(), ...prev]);
+    setUndoStack((prev) => prev.slice(0, -1));
+    setChess(new Chess(prevFen));
+    setSelectedSquare(null);
+  }
+
+  function goForward() {
+    if (redoStack.length === 0) return;
+    const nextFen = redoStack[0];
+    setUndoStack((prev) => [...prev, chess.fen()]);
+    setRedoStack((prev) => prev.slice(1));
+    setChess(new Chess(nextFen));
+    setSelectedSquare(null);
   }
 
   function onSquareClick(square: Square) {
@@ -105,15 +121,15 @@ export default function AnalysisBoard({ initialFen, boardOrientation, onClose }:
         </span>
         <div className="flex gap-1.5">
           <button
-            onClick={() => setHistoryIndex((i) => Math.max(0, i - 1))}
-            disabled={historyIndex === 0}
+            onClick={goBack}
+            disabled={undoStack.length === 0}
             className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded text-xs disabled:opacity-30"
           >
             ←
           </button>
           <button
-            onClick={() => setHistoryIndex((i) => Math.min(history.length - 1, i + 1))}
-            disabled={historyIndex === history.length - 1}
+            onClick={goForward}
+            disabled={redoStack.length === 0}
             className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded text-xs disabled:opacity-30"
           >
             →
@@ -129,7 +145,7 @@ export default function AnalysisBoard({ initialFen, boardOrientation, onClose }:
 
       <div ref={containerRef} className="rounded-lg overflow-hidden border-2 border-gray-700">
         <Chessboard
-          position={currentFen}
+          position={chess.fen()}
           onPieceDrop={onDrop}
           onSquareClick={onSquareClick}
           onPromotionCheck={(from, to, piece) =>
