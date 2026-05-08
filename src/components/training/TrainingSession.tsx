@@ -6,6 +6,8 @@ import { nextPuzzle, onAttempt, onAttemptWithHint, type QueueState } from "@/lib
 import { removePuzzleFromSet, hidePuzzleForUser } from "@/app/actions/manageSets";
 import { initSolution, applyUserMove, applyEngineMove, uciToSquares, type SolutionState } from "@/lib/chess/solution";
 import PuzzleBoard from "@/components/board/PuzzleBoard";
+import dynamic from "next/dynamic";
+const AnalysisBoard = dynamic(() => import("@/components/training/AnalysisBoard"), { ssr: false });
 
 interface Puzzle {
   id: string;
@@ -50,6 +52,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
   const [showingSolution, setShowingSolution] = useState(false);
   const [removedFromSet, setRemovedFromSet] = useState(false);
   const [hiddenGlobally, setHiddenGlobally] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState(false);
   const totalMsRef = useRef(totalMsBase);
   const puzzleTimeFrozenRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -90,6 +93,7 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
     setShowingSolution(false);
     setRemovedFromSet(false);
     setHiddenGlobally(false);
+    setAnalysisMode(false);
     puzzleTimeFrozenRef.current = null;
 
     setSetupPhase(true);
@@ -285,6 +289,12 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
             >
               Nächste Aufgabe →
             </button>
+            <button
+              onClick={() => setAnalysisMode((m) => !m)}
+              className={`px-3 py-1.5 rounded text-sm transition-colors ${analysisMode ? "bg-blue-700 text-white" : "bg-gray-800 hover:bg-gray-700 text-blue-400"}`}
+            >
+              Analysieren
+            </button>
             {currentPuzzleId && (
               <span className="self-center flex gap-3 text-xs">
                 {hiddenGlobally ? (
@@ -369,6 +379,14 @@ export default function TrainingSession({ session, puzzles, totalMsBase }: Props
           </span>
         )}
       </div>
+
+      {analysisMode && solutionState && (
+        <AnalysisBoard
+          initialFen={solutionState.game.fen()}
+          boardOrientation={boardOrientation}
+          onClose={() => setAnalysisMode(false)}
+        />
+      )}
     </div>
   );
 }
